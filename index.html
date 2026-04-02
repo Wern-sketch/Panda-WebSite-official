@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panda Bot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black: #0a0a0a;
+      --white: #f5f5f0;
+      --grey: #888880;
+      --accent: #c8f060;
+      --border: #222220;
+      --card: #111110;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      line-height: 1.7;
+      cursor: none;
+    }
+
+    /* Custom cursor */
+    .cursor {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.1s ease, width 0.2s ease, height 0.2s ease;
+    }
+    .cursor.grow {
+      width: 30px;
+      height: 30px;
+      background: transparent;
+      border: 1px solid var(--accent);
+    }
+
+    /* Noise overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.4;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 60px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10,10,10,0.92);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+      color: var(--white);
+      text-decoration: none;
+    }
+
+    .nav-logo span { color: var(--accent); }
+
+    .nav-links {
+      display: flex;
+      gap: 40px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--grey);
+      text-decoration: none;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--white); }
+
+    .nav-cta {
+      background: var(--accent);
+      color: var(--black);
+      padding: 10px 24px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: opacity 0.2s;
+    }
+
+    .nav-cta:hover { opacity: 0.85; }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero-left {
+      padding: 160px 60px 80px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .hero-tag {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hero-tag::before {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    .hero-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(52px, 6vw, 88px);
+      font-weight: 800;
+      line-height: 0.95;
+      letter-spacing: -3px;
+      margin-bottom: 32px;
+    }
+
+    .hero-title .line-accent { color: var(--accent); }
+
+    .hero-desc {
+      color: var(--grey);
+      font-size: 13px;
+      line-height: 1.8;
+      max-width: 400px;
+      margin-bottom: 48px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--black);
+      padding: 14px 32px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      text-decoration: none;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: opacity 0.2s;
+      border: none;
+      cursor: none;
+    }
+
+    .btn-primary:hover { opacity: 0.85; }
+
+    .btn-secondary {
+      color: var(--grey);
+      font-size: 12px;
+      text-decoration: none;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .btn-secondary:hover { color: var(--white); border-color: var(--white); }
+
+    .hero-right {
+      padding: 160px 60px 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      margin-bottom: 48px;
+    }
+
+    .stat-item {
+      background: var(--black);
+      padding: 32px;
+    }
+
+    .stat-number {
+      font-family: 'Syne', sans-serif;
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -2px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stat-number span { color: var(--accent); }
+
+    .stat-label {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--grey);
+    }
+
+    .terminal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 24px;
+      font-size: 12px;
+    }
+
+    .terminal-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .t-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+
+    .terminal-line { color: var(--grey); margin-bottom: 6px; }
+    .terminal-line .cmd { color: var(--accent); }
+    .terminal-line .out { color: var(--white); }
+    .terminal-line .dim { color: #555; }
+
+    .blink {
+      display: inline-block;
+      width: 7px;
+      height: 13px;
+      background: var(--accent);
+      animation: blink 1s step-end infinite;
+      vertical-align: middle;
+      margin-left: 2px;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* FEATURES */
+    .section {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-header {
+      padding: 80px 60px 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 0;
+    }
+
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(32px, 4vw, 56px);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1;
+    }
+
+    .section-count {
+      font-family: 'Syne', sans-serif;
+      font-size: 96px;
+      font-weight: 800;
+      color: var(--border);
+      letter-spacing: -4px;
+      line-height: 1;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      border-top: 1px solid var(--border);
+      margin-top: 60px;
+    }
+
+    .feature-col {
+      border-right: 1px solid var(--border);
+      padding: 48px 32px;
+    }
+
+    .feature-col:last-child { border-right: none; }
+
+    .feature-col-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .feature-list li {
+      font-size: 12px;
+      color: var(--grey);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .feature-list li::before {
+      content: '/';
+      color: var(--accent);
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    /* COMMANDS SECTION */
+    .commands-section {
+      padding: 80px 60px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .commands-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 60px;
+    }
+
+    .commands-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+    }
+
+    .commands-table thead tr {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .commands-table th {
+      padding: 16px 24px;
+      text-align: left;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--grey);
+      font-weight: 400;
+      background: var(--card);
+    }
+
+    .commands-table td {
+      padding: 16px 24px;
+      font-size: 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--grey);
+    }
+
+    .commands-table tr:last-child td { border-bottom: none; }
+
+    .commands-table tr:hover td { background: var(--card); }
+
+    .cmd-name {
+      font-family: 'DM Mono', monospace;
+      color: var(--accent);
+      font-size: 13px;
+    }
+
+    .cmd-category {
+      display: inline-block;
+      padding: 3px 10px;
+      border: 1px solid var(--border);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--grey);
+    }
+
+    /* HOW IT WORKS */
+    .how-section {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .how-left {
+      padding: 80px 60px;
+      border-right: 1px solid var(--border);
+    }
+
+    .how-right {
+      padding: 80px 60px;
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 60px 1fr;
+      gap: 24px;
+      padding: 32px 0;
+      border-bottom: 1px solid var(--border);
+      align-items: start;
+    }
+
+    .step:last-child { border-bottom: none; }
+
+    .step-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent);
+      padding-top: 3px;
+    }
+
+    .step-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 8px;
+    }
+
+    .step-desc {
+      font-size: 12px;
+      color: var(--grey);
+      line-height: 1.7;
+    }
+
+    .step-code {
+      margin-top: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 10px 16px;
+      font-size: 12px;
+      color: var(--accent);
+      display: inline-block;
+    }
+
+    /* FOOTER */
+    footer {
+      padding: 60px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 60px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-brand .nav-logo {
+      display: block;
+      margin-bottom: 16px;
+    }
+
+    .footer-desc {
+      font-size: 12px;
+      color: var(--grey);
+      line-height: 1.7;
+      max-width: 260px;
+    }
+
+    .footer-heading {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 20px;
+      letter-spacing: -0.3px;
+    }
+
+    .footer-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .footer-links a {
+      color: var(--grey);
+      text-decoration: none;
+      font-size: 12px;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--white); }
+
+    .footer-bottom {
+      padding: 24px 60px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-bottom p {
+      font-size: 11px;
+      color: var(--grey);
+      letter-spacing: 0.05em;
+    }
+
+    /* ANIMATIONS */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 1024px) {
+      nav { padding: 20px 32px; }
+      .nav-links { display: none; }
+      .hero { grid-template-columns: 1fr; }
+      .hero-right { display: none; }
+      .hero-left { padding: 140px 32px 60px; }
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .feature-col { border-right: none; border-bottom: 1px solid var(--border); }
+      .section-header { padding: 60px 32px 0; flex-direction: column; align-items: flex-start; gap: 16px; }
+      .commands-section { padding: 60px 32px; }
+      .how-section { grid-template-columns: 1fr; }
+      .how-left { border-right: none; border-bottom: 1px solid var(--border); padding: 60px 32px; }
+      .how-right { padding: 60px 32px; }
+      footer { grid-template-columns: 1fr; padding: 40px 32px; gap: 40px; }
+      .footer-bottom { padding: 20px 32px; flex-direction: column; gap: 8px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cursor" id="cursor"></div>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-logo">PANDA<span>.</span></a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#commands">Commands</a></li>
+      <li><a href="#setup">Setup</a></li>
+    </ul>
+    <a href="https://discord.com/oauth2/authorize?client_id=1487567812892299424&permissions=8&scope=bot%20applications.commands" class="nav-cta" target="_blank">Add to Server</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-left">
+      <div class="hero-tag fade-in">Discord Bot</div>
+      <h1 class="hero-title fade-in">
+        PANDA<br>
+        <span class="line-accent">BOT</span>
+      </h1>
+      <p class="hero-desc fade-in">
+        A fully-featured Discord bot with 64 slash commands. Moderation, leveling, economy, giveaways, tickets, and more. No database required. Everything works out of the box.
+      </p>
+      <div class="hero-actions fade-in">
+        <a href="https://discord.com/oauth2/authorize?client_id=1487567812892299424&permissions=8&scope=bot%20applications.commands" class="btn-primary" target="_blank">Add to Server</a>
+        <a href="#commands" class="btn-secondary">View Commands</a>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="stat-grid fade-in">
+        <div class="stat-item">
+          <div class="stat-number">64<span>+</span></div>
+          <div class="stat-label">Slash Commands</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">10<span>+</span></div>
+          <div class="stat-label">Categories</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">0</div>
+          <div class="stat-label">Setup Required</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">24<span>/7</span></div>
+          <div class="stat-label">Online</div>
+        </div>
+      </div>
+      <div class="terminal fade-in">
+        <div class="terminal-bar">
+          <div class="t-dot"></div>
+          <div class="t-dot"></div>
+          <div class="t-dot"></div>
+        </div>
+        <div class="terminal-line"><span class="dim">$</span> <span class="cmd">/rank</span></div>
+        <div class="terminal-line"><span class="out">Rank #1 — Level 24 — 1,840 XP</span></div>
+        <div class="terminal-line" style="margin-top:12px"><span class="dim">$</span> <span class="cmd">/gstart</span> prize: Nitro duration: 24h</div>
+        <div class="terminal-line"><span class="out">Giveaway started successfully.</span></div>
+        <div class="terminal-line" style="margin-top:12px"><span class="dim">$</span> <span class="cmd">/tempban</span> user: @user duration: 7d</div>
+        <div class="terminal-line"><span class="out">User banned. Expires in 7 days.</span></div>
+        <div class="terminal-line" style="margin-top:12px"><span class="dim">$</span> <span class="blink"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <div class="section-header">
+      <div>
+        <div class="section-label">What it does</div>
+        <h2 class="section-title">Everything<br>you need</h2>
+      </div>
+      <div class="section-count">10</div>
+    </div>
+    <div class="features-grid">
+      <div class="feature-col fade-in">
+        <div class="feature-col-title">Moderation</div>
+        <ul class="feature-list">
+          <li>Softban with message purge</li>
+          <li>Temp mute and temp ban</li>
+          <li>Channel lockdown</li>
+          <li>Hide and show channels</li>
+          <li>Nickname management</li>
+          <li>Warning system</li>
+        </ul>
+      </div>
+      <div class="feature-col fade-in">
+        <div class="feature-col-title">Leveling</div>
+        <ul class="feature-list">
+          <li>XP per message sent</li>
+          <li>Level up announcements</li>
+          <li>Server leaderboard</li>
+          <li>Role rewards per level</li>
+          <li>Admin XP controls</li>
+          <li>Full reset support</li>
+        </ul>
+      </div>
+      <div class="feature-col fade-in">
+        <div class="feature-col-title">Economy</div>
+        <ul class="feature-list">
+          <li>Coin balance system</li>
+          <li>Rob other users</li>
+          <li>Slot machine game</li>
+          <li>Blackjack game</li>
+          <li>Economy leaderboard</li>
+          <li>Full reset support</li>
+        </ul>
+      </div>
+      <div class="feature-col fade-in">
+        <div class="feature-col-title">Giveaways</div>
+        <ul class="feature-list">
+          <li>Button-based entry</li>
+          <li>Multiple winners</li>
+          <li>Pause and resume</li>
+          <li>Early end support</li>
+          <li>Winner reroll</li>
+          <li>Auto end on timer</li>
+        </ul>
+      </div>
+      <div class="feature-col fade-in">
+        <div class="feature-col-title">Tickets</div>
+        <ul class="feature-list">
+          <li>Private ticket channels</li>
+          <li>Add and remove users</li>
+          <li>Transcript export</li>
+          <li>Channel rename</li>
+          <li>Button-based close</li>
+          <li>Staff controls</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMANDS -->
+  <section id="commands" class="commands-section">
+    <div class="commands-header fade-in">
+      <div>
+        <div class="section-label">Full list</div>
+        <h2 class="section-title">Commands</h2>
+      </div>
+    </div>
+    <table class="commands-table fade-in">
+      <thead>
+        <tr>
+          <th>Command</th>
+          <th>Description</th>
+          <th>Category</th>
+          <th>Permission</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="cmd-name">/softban</td><td>Ban and unban to delete messages</td><td><span class="cmd-category">Moderation</span></td><td>Ban Members</td></tr>
+        <tr><td class="cmd-name">/tempmute</td><td>Mute a user for a set duration</td><td><span class="cmd-category">Moderation</span></td><td>Moderate Members</td></tr>
+        <tr><td class="cmd-name">/tempban</td><td>Ban a user for a set duration</td><td><span class="cmd-category">Moderation</span></td><td>Ban Members</td></tr>
+        <tr><td class="cmd-name">/unwarn</td><td>Remove a warning by ID</td><td><span class="cmd-category">Moderation</span></td><td>Moderate Members</td></tr>
+        <tr><td class="cmd-name">/lockdown</td><td>Lock a channel from sending messages</td><td><span class="cmd-category">Moderation</span></td><td>Manage Channels</td></tr>
+        <tr><td class="cmd-name">/unlockdown</td><td>Unlock a locked channel</td><td><span class="cmd-category">Moderation</span></td><td>Manage Channels</td></tr>
+        <tr><td class="cmd-name">/hidechannel</td><td>Hide a channel from everyone</td><td><span class="cmd-category">Moderation</span></td><td>Manage Channels</td></tr>
+        <tr><td class="cmd-name">/showchannel</td><td>Make a hidden channel visible</td><td><span class="cmd-category">Moderation</span></td><td>Manage Channels</td></tr>
+        <tr><td class="cmd-name">/nickname</td><td>Change a member nickname</td><td><span class="cmd-category">Moderation</span></td><td>Manage Nicknames</td></tr>
+        <tr><td class="cmd-name">/resetnick</td><td>Reset a member nickname</td><td><span class="cmd-category">Moderation</span></td><td>Manage Nicknames</td></tr>
+        <tr><td class="cmd-name">/setwelcome</td><td>Set welcome channel and message</td><td><span class="cmd-category">Administration</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/setgoodbye</td><td>Set goodbye channel and message</td><td><span class="cmd-category">Administration</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/setlogchannel</td><td>Set the log channel</td><td><span class="cmd-category">Administration</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/setmodrole</td><td>Set the moderator role</td><td><span class="cmd-category">Administration</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/setautorole</td><td>Auto-assign a role to new members</td><td><span class="cmd-category">Administration</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/enable</td><td>Enable a disabled command</td><td><span class="cmd-category">Administration</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/disable</td><td>Disable a command server-wide</td><td><span class="cmd-category">Administration</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/logs</td><td>View moderation action logs</td><td><span class="cmd-category">Logging</span></td><td>View Audit Log</td></tr>
+        <tr><td class="cmd-name">/audit</td><td>View audit history for a user</td><td><span class="cmd-category">Logging</span></td><td>View Audit Log</td></tr>
+        <tr><td class="cmd-name">/antispam</td><td>Toggle anti-spam protection</td><td><span class="cmd-category">Security</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/antinuke</td><td>Toggle anti-nuke protection</td><td><span class="cmd-category">Security</span></td><td>Administrator</td></tr>
+        <tr><td class="cmd-name">/antiraid</td><td>Toggle anti-raid protection</td><td><span class="cmd-category">Security</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/rank</td><td>View your or another user rank</td><td><span class="cmd-category">Leveling</span></td><td>Everyone</td></tr>
+        <tr><td class="cmd-name">/leaderboard</td><td>View the XP leaderboard</td><td><span class="cmd-category">Leveling</span></td><td>Everyone</td></tr>
+        <tr><td class="cmd-name">/setxp</td><td>Set a user XP amount</td><td><span class="cmd-category">Leveling</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/removexp</td><td>Remove XP from a user</td><td><span class="cmd-category">Leveling</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/setlevelrole</td><td>Assign a role at a specific level</td><td><span class="cmd-category">Leveling</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/resetlevels</td><td>Reset all level data</td><td><span class="cmd-category">Leveling</span></td><td>Administrator</td></tr>
+        <tr><td class="cmd-name">/ticket</td><td>Open a support ticket</td><td><span class="cmd-category">Tickets</span></td><td>Everyone</td></tr>
+        <tr><td class="cmd-name">/close</td><td>Close a ticket channel</td><td><span class="cmd-category">Tickets</span></td><td>Manage Channels</td></tr>
+        <tr><td class="cmd-name">/adduser</td><td>Add a user to a ticket</td><td><span class="cmd-category">Tickets</span></td><td>Manage Channels</td></tr>
+        <tr><td class="cmd-name">/removeuser</td><td>Remove a user from a ticket</td><td><span class="cmd-category">Tickets</span></td><td>Manage Channels</td></tr>
+        <tr><td class="cmd-name">/transcript</td><td>Export a ticket transcript</td><td><span class="cmd-category">Tickets</span></td><td>Manage Channels</td></tr>
+        <tr><td class="cmd-name">/gstart</td><td>Start a giveaway</td><td><span class="cmd-category">Giveaways</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/gend</td><td>End a giveaway early</td><td><span class="cmd-category">Giveaways</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/greroll</td><td>Reroll a giveaway winner</td><td><span class="cmd-category">Giveaways</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/gpause</td><td>Pause a giveaway</td><td><span class="cmd-category">Giveaways</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/gresume</td><td>Resume a paused giveaway</td><td><span class="cmd-category">Giveaways</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/slots</td><td>Play the slot machine</td><td><span class="cmd-category">Economy</span></td><td>Everyone</td></tr>
+        <tr><td class="cmd-name">/blackjack</td><td>Play blackjack against the dealer</td><td><span class="cmd-category">Economy</span></td><td>Everyone</td></tr>
+        <tr><td class="cmd-name">/rob</td><td>Attempt to rob another user</td><td><span class="cmd-category">Economy</span></td><td>Everyone</td></tr>
+        <tr><td class="cmd-name">/give</td><td>Give coins to a user</td><td><span class="cmd-category">Economy</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/autoresponder</td><td>Manage auto-responders</td><td><span class="cmd-category">Automation</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/autoreact</td><td>Manage auto-reactions</td><td><span class="cmd-category">Automation</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/setcolor</td><td>Set a role color</td><td><span class="cmd-category">Customization</span></td><td>Manage Roles</td></tr>
+        <tr><td class="cmd-name">/setbanner</td><td>Set the server banner</td><td><span class="cmd-category">Customization</span></td><td>Manage Guild</td></tr>
+        <tr><td class="cmd-name">/setstatus</td><td>Set the bot status text</td><td><span class="cmd-category">Customization</span></td><td>Administrator</td></tr>
+        <tr><td class="cmd-name">/setactivity</td><td>Set the bot activity type</td><td><span class="cmd-category">Customization</span></td><td>Administrator</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-section" id="setup">
+    <div class="how-left">
+      <div class="section-label">Getting started</div>
+      <h2 class="section-title" style="font-family:'Syne',sans-serif;font-size:40px;font-weight:800;letter-spacing:-2px;line-height:1;margin-top:12px;">Three steps.<br>That is it.</h2>
+    </div>
+    <div class="how-right">
+      <div class="steps">
+        <div class="step fade-in">
+          <div class="step-num">01</div>
+          <div>
+            <div class="step-title">Add to your server</div>
+            <div class="step-desc">Click the invite link and authorize Panda Bot with Administrator permissions. All 64 slash commands will register automatically within a few seconds.</div>
+            <div class="step-code">discord.com/oauth2/authorize</div>
+          </div>
+        </div>
+        <div class="step fade-in">
+          <div class="step-num">02</div>
+          <div>
+            <div class="step-title">Configure basic settings</div>
+            <div class="step-desc">Use the administration commands to set up your server. Set a welcome channel, log channel, and mod role. Everything else works with no configuration.</div>
+            <div class="step-code">/setwelcome /setlogchannel /setmodrole</div>
+          </div>
+        </div>
+        <div class="step fade-in">
+          <div class="step-num">03</div>
+          <div>
+            <div class="step-title">Start using commands</div>
+            <div class="step-desc">Type / in any channel to see all available commands. The leveling system, economy, and anti-spam features are all active immediately with no extra setup.</div>
+            <div class="step-code">/rank /ticket /gstart /slots</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-brand">
+      <a href="#" class="nav-logo">PANDA<span>.</span></a>
+      <p class="footer-desc">A fully-featured Discord bot with 64 commands across 10 categories. No database. No setup. Just add and go.</p>
+    </div>
+    <div>
+      <div class="footer-heading">Commands</div>
+      <ul class="footer-links">
+        <li><a href="#commands">Moderation</a></li>
+        <li><a href="#commands">Leveling</a></li>
+        <li><a href="#commands">Economy</a></li>
+        <li><a href="#commands">Giveaways</a></li>
+        <li><a href="#commands">Tickets</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-heading">Links</div>
+      <ul class="footer-links">
+        <li><a href="https://discord.com/oauth2/authorize?client_id=1487567812892299424&permissions=8&scope=bot%20applications.commands" target="_blank">Add to Server</a></li>
+        <li><a href="https://github.com/Wern-sketch/panda-bot" target="_blank">GitHub</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#setup">Setup Guide</a></li>
+      </ul>
+    </div>
+  </footer>
+  <div class="footer-bottom">
+    <p>Panda Bot — Built with Discord.js v14</p>
+    <p>64 commands. 0 databases. Always online.</p>
+  </div>
+
+  <script>
+    // Cursor
+    const cursor = document.getElementById('cursor');
+    document.addEventListener('mousemove', e => {
+      cursor.style.left = e.clientX + 'px';
+      cursor.style.top = e.clientY + 'px';
+    });
+    document.querySelectorAll('a, button').forEach(el => {
+      el.addEventListener('mouseenter', () => cursor.classList.add('grow'));
+      el.addEventListener('mouseleave', () => cursor.classList.remove('grow'));
+    });
+
+    // Fade in on scroll
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    // Stagger hero fades
+    document.querySelectorAll('.hero .fade-in').forEach((el, i) => {
+      el.style.transitionDelay = (i * 0.12) + 's';
+      setTimeout(() => el.classList.add('visible'), 100 + i * 120);
+    });
+  </script>
+</body>
+</html>
